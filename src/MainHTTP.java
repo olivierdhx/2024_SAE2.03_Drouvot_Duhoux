@@ -13,6 +13,11 @@ import java.lang.management.RuntimeMXBean;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
+//Pour le calcul de mémoire
+
+import com.sun.management.OperatingSystemMXBean;
+
+
 
 public class MainHTTP {
 
@@ -22,6 +27,44 @@ public class MainHTTP {
     public static String accept = null;
     public static String reject = null;
 
+    public static String accesLog = "";
+    public static String errorLog = "";
+
+    public static String numProcess;
+
+    public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
+        // path Fichier de configuration
+        String filename = "src/protocol.xml";
+        // Appel de la méthode pour prendre les éléments par rapport au fichier de configuration
+        prendreElements(filename);
+
+        //A partir des éléments du fichier de configuration, on configure le server
+        // Création du Socket pour établir un contact avec le client plus tard
+        ServerSocket serverSocket = new ServerSocket(Integer.parseInt(port));
+        System.out.println("🟢 Le serveur est fonctionnel. En l'attente d'une connexion...");
+
+        // S'occupe de prendre le PID (Process ID) du programme Java
+        RuntimeMXBean runMX = ManagementFactory.getRuntimeMXBean();
+        // String stockant le PID (Ce dernier étant noté avec "PID@Ubuntu20", nous devons effectuer un split pour uniquement garder le PID)
+        String numeroProcess = runMX.getName().split("@LAPTOP-VN0G0AMG")[0];
+        numProcess = numeroProcess;
+        // Création d'un fichier qui se chargera de stocker le PID courant
+        File filePID = new File("./var/run/myweb.pid");
+        // Création d'un PrintWriter chargé d'écrire les données dans le fichier donné
+        PrintWriter pwID = new PrintWriter(filePID);
+        // Ecriture des données présentes dans le String précédent
+        pwID.println(numeroProcess);
+        // Fermeture du PrintWriter
+        pwID.close();
+        System.out.println("Numéro de process " + numeroProcess);
+
+        // Boucle While permettant de charger le serveur indéfiniment
+        while (true) {
+            run(serverSocket, link);
+            System.out.println("Nouvelle requête :");
+        }
+    }
+
     /**
      * Méthode permettant de savoir si l'adresse IP mise en paramètre est acceptée par le serveur en fonction du fichier XML
      *
@@ -29,61 +72,11 @@ public class MainHTTP {
      * @return boolean true si l'adresse est acceptée, false sinon
      */
     private static boolean estAutorise(String ip) {
-        int sizeIPReject = reject.length();
-        System.out.println(sizeIPReject + " et oui");
-        String ipRej = reject;
-        String ipBegin = "";
-        String stringCurrent = "";
-        String charAtCurrent = "";
-        if (reject.contains("/")) {
-            ipRej = ipRej.split("/")[0];
-            sizeIPReject = ipRej.length();
-        }
-        for (int i = 0; i < sizeIPReject; i++) {
-            charAtCurrent = "" + ipRej.charAt(i);
-            stringCurrent += charAtCurrent;
-            if (!charAtCurrent.equals("0")) {
-                ipBegin = stringCurrent;
-            }
-        }
-        System.out.println("IP : " + ip);
-        System.out.println("IPBegin : " + ipBegin);
-        return ip.startsWith(ipBegin);
+        String[] ipRejected = reject.split("\"");
+        String[] ipSeparee = ip.split("\"");
+        return ipSeparee[0].compareTo(ipRejected[0]) != 0;
     }
 
-    /**
-     * Permettant de récupérer les différents éléments du fichier XML (selon son nom)
-     *
-     * @param filename le nom de l'élément à récupérer
-     */
-    public static void prendreElements(String filename) throws
-            ParserConfigurationException, SAXException, IOException {
-
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        try {
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            Document doc = db.parse(new File(filename));
-            NodeList list = doc.getElementsByTagName("webconf");
-            for (int temp = 0; temp < list.getLength(); temp++) {
-                Node node = list.item(temp);
-                if (node.getNodeType() == Node.ELEMENT_NODE) {
-                    Element element = (Element) node;
-                    port = element.getElementsByTagName("port").item(0).getTextContent();
-                    System.out.println("Port = " + port);
-                    link = element.getElementsByTagName("root").item(0).getTextContent();
-                    System.out.println("Link = " + link);
-                    index = element.getElementsByTagName("index").item(0).getTextContent();
-                    System.out.println("Index = " + index);
-                    accept = element.getElementsByTagName("accept").item(0).getTextContent();
-                    System.out.println("Accept = " + accept);
-                    reject = element.getElementsByTagName("reject").item(0).getTextContent();
-                    System.out.println("Reject = " + reject);
-                }
-            }
-        } catch (ParserConfigurationException | SAXException | IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Méthode s'occupant de l'excution du serveur
@@ -102,7 +95,9 @@ public class MainHTTP {
             System.out.println("🟢 Connexion d'un client : " + ipString);
 
             //Si l'adresse IP n'est pas autorisée dans le fichier XML, on refuse la connexion
-            if (estAutorise(ipString)) {
+            ecritureLogConnexion("Tentative de connexion par : " + ipString);
+            if (!estAutorise(ipString)) {
+                ecritureLogConnexion("Connexion refusée par : " + ipString);
                 System.out.println("🔴 Connexion refusée : " + ipString);
                 clientSocket.close();
             } else {
@@ -125,6 +120,7 @@ public class MainHTTP {
                 System.out.println("🟢 Connexion acceptée.");
 
 
+
                 // Lecture de la requête du client non nulle
                 System.out.println("💡 Requête reçue : " + request);
                 String[] parts = request.split(" ");
@@ -143,7 +139,7 @@ public class MainHTTP {
 
                 // Vérifie si le chemin existe, et traite s'il n'y a pas de chemin écrit
                 if (path.equals(MainHTTP.link) || path.equals("/")) {
-                    request = method + " " + MainHTTP.link + "/fichierTest.html " + version;
+                    request = method + " " + MainHTTP.link + "/status.html " + version;
                     System.out.println("ok");
                 } else {
                     request = method + " " + MainHTTP.link + path + " " + version;
@@ -194,10 +190,12 @@ public class MainHTTP {
 
                 // S'occupe d'écrire les données
                 File file = new File(link);
-                System.out.println("Link : " + link);
                 DataInputStream bf = new DataInputStream(new FileInputStream(file));
+                int memoire = calculMemoire(); // Appel de la fonction calculMemoire pour obtenir la mémoire disponible
+                int espaceDisque = calculEspaceDisque();
+                String htmlWithInfo = ajoutInformationHTML(memoire, espaceDisque,numProcess); // Ajout de la mémoire disponible au HTML
                 byte[] dataRead = null;
-                dataRead = Files.readAllBytes(file.toPath());
+                dataRead = htmlWithInfo.getBytes();
                 clientSocket.getOutputStream().write(dataRead);
                 printWriter.flush();
                 clientSocket.close();
@@ -207,34 +205,55 @@ public class MainHTTP {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+    }
+    public static String ajoutInformationHTML(int memoire, int espaceDisqueDispo, String nbProcess) throws IOException {
+        String link = "root/status.html";
+        File file = new File(link);
+        String html = new String(Files.readAllBytes(file.toPath()));
+        html = html.replace("{{MEMORY}}", memoire + " MB");
+        html = html.replace("{{DISK}}", espaceDisqueDispo + " MB");
+        html = html.replace("{{PROCESSES}}", nbProcess);
+        return html;
     }
 
-    public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
-        // Mise en place du nom du fichier de configuration
-        String filename = "src/protocol.xml";
-        // Appel de la méthode pour prendre les éléments par rapport au chemin
-        prendreElements(filename);
-        // Création du Socket pour établir un contact avec le client plus tard
-        ServerSocket serverSocket = new ServerSocket(Integer.parseInt(port));
-        System.out.println("🟢 Le serveur est fonctionnel. En l'attente d'une connexion...");
 
-        // S'occupe de prendre le PID (Process ID) du programme Java
-        RuntimeMXBean runMX = ManagementFactory.getRuntimeMXBean();
-        // String stockant le PID (Ce dernier étant noté avec "PID@Ubuntu20", nous devons effectuer un split pour uniquement garder le PID)
-        String pidCurr = runMX.getName().split("@Ubuntu20")[0];
-        // Création d'un fichier qui se chargera de stocker le PID courant
-        File filePID = new File("./var/run/myweb.pid");
-        // Création d'un PrintWriter chargé d'écrire les données dans le fichier donné
-        PrintWriter pwID = new PrintWriter(filePID);
-        // Ecriture des données présentes dans le String précédent
-        pwID.println(pidCurr);
-        // Fermeture du PrintWriter
-        pwID.close();
+    private static int calculMemoire() {
+        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+        long freeMemory = osBean.getFreePhysicalMemorySize(); // Mémoire physique disponible en octets
+        int freeMemoryMB = (int) (freeMemory / (1024 * 1024)); // Conversion en mégaoctets
+        return freeMemoryMB;
+    }
 
-        // Boucle While permettant de charger le serveur indéfiniment
-        while (true) {
-            run(serverSocket, link);
-            System.out.println("Nouvelle requête :");
+    private static int calculEspaceDisque() {
+        File file = new File("C:\\");
+        long espaceDisque = file.getFreeSpace() / (1024 * 1024); // Espace disque disponible en octets
+        System.out.println("espace disque = " + espaceDisque);
+        int espaceDisqueMB = (int) espaceDisque; // Conversion en mégaoctets
+        return espaceDisqueMB;
+    }
+
+    public static void ecritureLogConnexion(String ipConnexion){
+        try {
+            PrintWriter pw = new PrintWriter(new FileWriter(accesLog,true));
+            pw.println(ipConnexion + " " + java.time.LocalDateTime.now());
+            System.out.println("Ecriture faite");
+            pw.close();
+
+        } catch (IOException e) {
+            ecritureError(e.getMessage());
         }
     }
+
+    public static void ecritureError(String s){
+        try {
+            PrintWriter pw = new PrintWriter(new FileWriter(errorLog,true));
+            pw.println(s + " " + java.time.LocalDateTime.now());
+            pw.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
 }
