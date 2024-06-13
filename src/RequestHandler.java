@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RequestHandler implements Runnable {
     private Socket clientSocket;
@@ -8,24 +10,12 @@ public class RequestHandler implements Runnable {
     private Logger logger;
     private String numProcess;
 
-    /**
-     * Constructeur pour les requetes
-     * @param clientSocket Connexion du client
-     * @param config Configuration du server
-     * @param logger Log du server
-     * @param numProcess Numéro de processeur du serveur
-     */
-
     public RequestHandler(Socket clientSocket, ConfigServ config, Logger logger, String numProcess) {
         this.clientSocket = clientSocket;
         this.config = config;
         this.logger = logger;
         this.numProcess = numProcess;
     }
-
-    /**
-     * Run la connexion
-     */
 
     @Override
     public void run() {
@@ -37,22 +27,11 @@ public class RequestHandler implements Runnable {
         }
     }
 
-    /**
-     * Vérifie si l'ip qui se connecte est autorisée grace au fichier de config
-     * @param ip ip qui se connecte
-     * @return true si autorisée
-     */
-
     public boolean ipEstAutorisee(String ip){
         String ipReject = config.getReject().split("/")[0];
-
         return !(ipReject.compareTo(ip) == 0);
     }
 
-    /**
-     * Gère toute la connexion du client
-     * @throws IOException
-     */
     private void handleRequest() throws IOException {
         String ipConnection = clientSocket.getInetAddress().getHostAddress();
         logger.logAccess("Tentative de connexion par l'ip : " + ipConnection);
@@ -64,25 +43,22 @@ public class RequestHandler implements Runnable {
         String request = bufferedReader.readLine();
         String[] parts = request.split(" ");
 
-
         String method = parts[0];
         String path = parts[1];
         String version = parts[2];
         boolean status = false;
-        if(path.equals(config.getLink()) || path.equals("/")){
-            path = config.getLink() + "/index.html";
-        }else{
-            if(path.compareTo("/status") == 0){
+        if (path.equals(config.getLink()) || path.equals("/")) {
+            path = config.getLink() + "/fichierTest.html";
+        } else {
+            if (path.compareTo("/status") == 0) {
                 status = true;
             }
             path = config.getLink() + path + ".html";
         }
 
-        if(!ipEstAutorisee(ipConnection)){
+        if (!ipEstAutorisee(ipConnection)) {
             path = config.getLink() + "/error403.html";
         }
-
-
 
         File file = new File(path.substring(1));
         if (!file.exists()) {
@@ -93,13 +69,15 @@ public class RequestHandler implements Runnable {
         if (contentType == null) {
             contentType = "application/octet-stream";
         }
+
         String html = new String(Files.readAllBytes(file.toPath()));
         if (contentType.startsWith("text/")) {
-            if(status){
+            if (status) {
                 int memoire = Utils.calculMemoire();
                 int espaceDisque = Utils.calculEspaceDisque();
                 html = Utils.ajoutInformationHTML(html, memoire, espaceDisque, numProcess);
             }
+            html = processCodeTags(html);
             sendTextResponse(printWriter, contentType, html);
         } else {
             sendBinaryResponse(outputStream, contentType, file);
@@ -129,5 +107,48 @@ public class RequestHandler implements Runnable {
 
         Files.copy(file.toPath(), outputStream);
         outputStream.flush();
+    }
+
+    private String processCodeTags(String html) {
+        Pattern pattern = Pattern.compile("<code interpreteur=\"([^\"]+)\">(.+?)</code>", Pattern.DOTALL);
+        Matcher matcher = pattern.matcher(html);
+        StringBuffer processedHtml = new StringBuffer();
+
+        while (matcher.find()) {
+            String interpreter = matcher.group(1);
+            String code = matcher.group(2);
+            String result = executeCode(interpreter, code);
+            matcher.appendReplacement(processedHtml, "<pre>" + result + "</pre>");
+        }
+        matcher.appendTail(processedHtml);
+        return processedHtml.toString();
+    }
+
+    private String executeCode(String interpreter, String code) {
+        try {
+            File tempFile = File.createTempFile("code", null);
+            try (PrintWriter writer = new PrintWriter(tempFile)) {
+                writer.print(code);
+            }
+
+            ProcessBuilder processBuilder = new ProcessBuilder(interpreter, tempFile.getAbsolutePath());
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            }
+
+            tempFile.delete();
+            return output.toString();
+        } catch (IOException e) {
+            logger.logError("Error executing code: " + e.getMessage());
+            e.printStackTrace();
+            return "Error executing code: " + e.getMessage();
+        }
     }
 }
