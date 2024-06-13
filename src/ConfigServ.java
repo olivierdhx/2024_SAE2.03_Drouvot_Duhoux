@@ -50,4 +50,33 @@ public class ConfigServ {
             e.printStackTrace();
         }
     }
+
+
+    public String getPort() {
+        return port;
+    }
+
+    public String getLink() {
+        return link;
+    }
+
+    public String getIndex() {
+        return index;
+    }
+
+    public String getAccept() {
+        return accept;
+    }
+
+    public String getReject() {
+        return reject;
+    }
+
+    public String getAccesLog() {
+        return accesLog;
+    }
+
+    public String getErrorLog() {
+        return errorLog;
+    }
 }
