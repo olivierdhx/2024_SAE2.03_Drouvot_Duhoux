@@ -14,7 +14,7 @@ public class Logger {
     public void logAccess(String message) {
         try (PrintWriter pw = new PrintWriter(new FileWriter(accesLog, true))) {
             //Permet de récupérer la date précise du message
-            pw.println(message + " " + java.time.LocalDateTime.now());
+            pw.println(java.time.LocalDateTime.now() + " : " + message);
         } catch (IOException e) {
             logError(e.getMessage());
         }
@@ -23,7 +23,7 @@ public class Logger {
     public void logError(String message) {
         try (PrintWriter pw = new PrintWriter(new FileWriter(errorLog, true))) {
             //Permet de récupérer la date précise du message
-            pw.println(message + " " + java.time.LocalDateTime.now());
+            pw.println(java.time.LocalDateTime.now() + " : " + message);
         } catch (IOException e) {
             e.printStackTrace();
         }
