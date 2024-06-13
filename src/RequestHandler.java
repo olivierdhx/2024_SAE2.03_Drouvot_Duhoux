@@ -48,18 +48,22 @@ public class RequestHandler implements Runnable {
 
     private void handleRequest(String request, PrintWriter printWriter, OutputStream outputStream) throws IOException {
         String[] parts = request.split(" ");
+        //On sépare la requete en plusieurs partie
         String method = parts[0];
         String path = parts[1];
         String version = parts[2];
-
-        if (path.equals(config.getLink()) || path.equals("/")) {
-            path = config.getLink() + "/status.html";
-        } else {
-            path = config.getLink() + path;
+        //Si rien n'est précisé dans l'url, alors c'est l'index
+        if(path.equals(config.getLink()) || path.equals("/")) {
+            path = config.getLink() + "/index.html";
+        }else{
+            //Sinon c'est la page demandée
+            path = config.getLink() + path + ".html";
         }
 
+        //Et on recherche le fichier en fonction du path
         File file = new File(path.substring(1));
         if (!file.exists()) {
+            //Si le fichier n'existe pas, alors on renvoie le error404
             file = new File(config.getLink().substring(1) + "/error404.html");
         }
     
