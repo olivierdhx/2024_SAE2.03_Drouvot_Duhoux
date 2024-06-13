@@ -19,8 +19,7 @@ public class Utils {
         return (int) espaceDisque;
     }
 
-    public static String ajoutInformationHTML(File file, int memoire, int espaceDisque, String nbProcess) throws IOException {
-        String html = new String(Files.readAllBytes(file.toPath()));
+    public static String ajoutInformationHTML(String html, int memoire, int espaceDisque, String nbProcess) throws IOException {
         html = html.replace("{{MEMORY}}", memoire + " MB");
         html = html.replace("{{DISK}}", espaceDisque + " MB");
         html = html.replace("{{PROCESSES}}", nbProcess);

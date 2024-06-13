@@ -20,6 +20,11 @@ public class ConfigServ {
     public static String accesLog = "";
     public static String errorLog = "";
 
+    /**
+     * Rempli la config a partir du path
+     * @param pathConfig path du fichier config xml
+     */
+
     public ConfigServ(String pathConfig){
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         try {

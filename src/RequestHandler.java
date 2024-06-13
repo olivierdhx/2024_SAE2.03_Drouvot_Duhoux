@@ -8,6 +8,14 @@ public class RequestHandler implements Runnable {
     private Logger logger;
     private String numProcess;
 
+    /**
+     * Constructeur pour les requetes
+     * @param clientSocket Connexion du client
+     * @param config Configuration du server
+     * @param logger Log du server
+     * @param numProcess Numéro de processeur du serveur
+     */
+
     public RequestHandler(Socket clientSocket, ConfigServ config, Logger logger, String numProcess) {
         this.clientSocket = clientSocket;
         this.config = config;
@@ -15,34 +23,65 @@ public class RequestHandler implements Runnable {
         this.numProcess = numProcess;
     }
 
+    /**
+     * Run la connexion
+     */
+
     @Override
     public void run() {
         try {
             handleRequest();
         } catch (IOException e) {
+            logger.logError(e.getMessage());
             e.printStackTrace();
         }
     }
 
+    /**
+     * Vérifie si l'ip qui se connecte est autorisée grace au fichier de config
+     * @param ip ip qui se connecte
+     * @return true si autorisée
+     */
+
+    public boolean ipEstAutorisee(String ip){
+        String ipReject = config.getReject().split("/")[0];
+
+        return !(ipReject.compareTo(ip) == 0);
+    }
+
+    /**
+     * Gère toute la connexion du client
+     * @throws IOException
+     */
     private void handleRequest() throws IOException {
+        String ipConnection = clientSocket.getInetAddress().getHostAddress();
+        logger.logAccess("Tentative de connexion par l'ip : " + ipConnection);
+        System.out.println(ipConnection);
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         OutputStream outputStream = clientSocket.getOutputStream();
         PrintWriter printWriter = new PrintWriter(outputStream, true);
 
         String request = bufferedReader.readLine();
-        System.out.println(request);
         String[] parts = request.split(" ");
 
 
         String method = parts[0];
         String path = parts[1];
         String version = parts[2];
-
+        boolean status = false;
         if(path.equals(config.getLink()) || path.equals("/")){
             path = config.getLink() + "/index.html";
         }else{
-            path = config.getLink() + path;
+            if(path.compareTo("/status") == 0){
+                status = true;
+            }
+            path = config.getLink() + path + ".html";
         }
+
+        if(!ipEstAutorisee(ipConnection)){
+            path = config.getLink() + "/error403.html";
+        }
+
 
 
         File file = new File(path.substring(1));
@@ -54,12 +93,14 @@ public class RequestHandler implements Runnable {
         if (contentType == null) {
             contentType = "application/octet-stream";
         }
-
+        String html = new String(Files.readAllBytes(file.toPath()));
         if (contentType.startsWith("text/")) {
-            int memoire = Utils.calculMemoire();
-            int espaceDisque = Utils.calculEspaceDisque();
-            String htmlWithInfo = Utils.ajoutInformationHTML(file, memoire, espaceDisque, numProcess);
-            sendTextResponse(printWriter, contentType, htmlWithInfo);
+            if(status){
+                int memoire = Utils.calculMemoire();
+                int espaceDisque = Utils.calculEspaceDisque();
+                html = Utils.ajoutInformationHTML(html, memoire, espaceDisque, numProcess);
+            }
+            sendTextResponse(printWriter, contentType, html);
         } else {
             sendBinaryResponse(outputStream, contentType, file);
         }
@@ -88,14 +129,5 @@ public class RequestHandler implements Runnable {
 
         Files.copy(file.toPath(), outputStream);
         outputStream.flush();
-    }
-
-    private void sendErrorResponse(PrintWriter printWriter, String status, String message) {
-        printWriter.println("HTTP/1.1 " + status);
-        printWriter.println("Content-Type: text/plain");
-        printWriter.println("Content-Length: " + message.length());
-        printWriter.println();
-        printWriter.print(message);
-        printWriter.flush();
     }
 }

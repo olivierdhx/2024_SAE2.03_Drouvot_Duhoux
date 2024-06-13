@@ -11,11 +11,21 @@ public class Server {
     private Logger logger;
     private String numProcess;
 
+    /**
+     * Créer un server a partir de la config et des logs
+     * @param config
+     * @param logger
+     */
+
     public Server(ConfigServ config, Logger logger) {
         this.config = config;
         this.logger = logger;
         setupPidFile();
     }
+
+    /**
+     * Créer le fichier et met le numero de processeur
+     */
 
     private void setupPidFile() {
         RuntimeMXBean runMX = ManagementFactory.getRuntimeMXBean();
@@ -27,6 +37,11 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Start le serveur
+     * @throws IOException
+     */
 
     public void start() throws IOException {
         try (ServerSocket serverSocket = new ServerSocket(Integer.parseInt(config.getPort()))) {
