@@ -7,19 +7,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Server {
-    private ConfigServ config;
-    private Logger logger;
     private String numProcess;
 
     /**
      * Créer un server a partir de la config et des logs
-     * @param config
-     * @param logger
      */
 
-    public Server(ConfigServ config, Logger logger) {
-        this.config = config;
-        this.logger = logger;
+    public Server() {
         ecrireNumProcess();
     }
 
@@ -40,10 +34,12 @@ public class Server {
 
     /**
      * Start le serveur
+     * @param config l'objet ConfigServ que l'on passe en parametre au ConnectionHandler
+     * @param logger l'objet Logger que l'on passe en parametre au ConnectionHandler
      * @throws IOException
      */
 
-    public void start() throws IOException {
+    public void start(ConfigServ config, Logger logger) throws IOException {
         try (ServerSocket serverSocket = new ServerSocket(Integer.parseInt(config.getPort()))) {
             System.out.println("Server allumé, attente connection");
             while (true) {

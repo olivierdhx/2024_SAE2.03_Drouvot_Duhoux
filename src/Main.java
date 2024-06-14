@@ -6,8 +6,8 @@ public class Main {
             //Créer les logs a partir du chemin spécifié dans la config
             Logger logger = new Logger(config.getAccesLog(), config.getErrorLog());
             //A partir de cela, créer le server et le start
-            Server server = new Server(config, logger);
-            server.start();
+            Server server = new Server();
+            server.start(config, logger);
         } catch (Exception e) {
             e.printStackTrace();
         }

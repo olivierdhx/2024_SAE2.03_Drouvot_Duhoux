@@ -41,8 +41,6 @@ class Server{
 }
 
 Server ..> ConnectionHandler
-Server "1" --> "1" ConfigServ : - config
-Server "*" --> "1" Logger : - logger
 
 class ConnectionHandler{
 - clientSocket: Socket
