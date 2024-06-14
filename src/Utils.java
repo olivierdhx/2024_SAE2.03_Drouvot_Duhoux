@@ -23,7 +23,7 @@ public class Utils {
      */
 
     public static int calculEspaceDisque() {
-        File file = new File("C:\\");
+        File file = new File("/");
         long espaceDisque = file.getFreeSpace() / (1024 * 1024);
         return (int) espaceDisque;
     }
