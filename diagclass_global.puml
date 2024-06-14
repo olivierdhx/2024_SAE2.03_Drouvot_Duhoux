@@ -44,8 +44,6 @@ Server ..> ConnectionHandler
 
 class ConnectionHandler{
 - clientSocket: Socket
-- config: ConfigServ
-- logger: Logger
 - numProcess: String
 + ConnectionHandler(Socket, ConfigServ, Logger, String)
 + run()
