@@ -11,14 +11,14 @@ import java.io.File;
 import java.io.IOException;
 
 public class ConfigServ {
-    public static String port = "";
-    public static String link = "";
-    public static String index = "";
-    public static String accept = null;
-    public static String reject = null;
+    private static String port = "";
+    private static String link = "";
+    private static String index = "";
+    private static String accept = null;
+    private static String reject = null;
 
-    public static String accesLog = "";
-    public static String errorLog = "";
+    private static String accesLog = "";
+    private static String errorLog = "";
 
     /**
      * Rempli la config a partir du path
