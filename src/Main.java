@@ -1,4 +1,4 @@
-public class MainHTTP {
+public class Main {
     public static void main(String[] args) {
         try {
             //Lis la config dans le chemin spécifié

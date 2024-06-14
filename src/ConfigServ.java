@@ -28,6 +28,7 @@ public class ConfigServ {
     public ConfigServ(String pathConfig){
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         try {
+            //Lecture de chaque balise
             DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(new File(pathConfig));
             NodeList list = doc.getElementsByTagName("webconf");
@@ -36,19 +37,12 @@ public class ConfigServ {
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
                     Element element = (Element) node;
                     port = element.getElementsByTagName("port").item(0).getTextContent();
-                    System.out.println("Port = " + port);
                     link = element.getElementsByTagName("root").item(0).getTextContent();
-                    System.out.println("Link = " + link);
                     index = element.getElementsByTagName("index").item(0).getTextContent();
-                    System.out.println("Index = " + index);
                     accept = element.getElementsByTagName("accept").item(0).getTextContent();
-                    System.out.println("Accept = " + accept);
                     reject = element.getElementsByTagName("reject").item(0).getTextContent();
-                    System.out.println("Reject = " + reject);
                     accesLog = element.getElementsByTagName("acceslog").item(0).getTextContent();
-                    System.out.println("AccesLog = " + accesLog);
                     errorLog = element.getElementsByTagName("errorlog").item(0).getTextContent();
-                    System.out.println("ErrorLog = " + errorLog);
                 }
             }
         } catch (ParserConfigurationException | SAXException | IOException e) {

@@ -20,14 +20,14 @@ public class Server {
     public Server(ConfigServ config, Logger logger) {
         this.config = config;
         this.logger = logger;
-        setupPidFile();
+        ecrireNumProcess();
     }
 
     /**
      * Créer le fichier et met le numero de processeur
      */
 
-    private void setupPidFile() {
+    private void ecrireNumProcess() {
         RuntimeMXBean runMX = ManagementFactory.getRuntimeMXBean();
         numProcess = runMX.getName().split("@")[0];
         File filePID = new File("./var/run/myweb.pid");
@@ -45,10 +45,10 @@ public class Server {
 
     public void start() throws IOException {
         try (ServerSocket serverSocket = new ServerSocket(Integer.parseInt(config.getPort()))) {
-            System.out.println("🟢 Le serveur est fonctionnel. En l'attente d'une connexion...");
+            System.out.println("Server allumé, attente connection");
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                new Thread(new RequestHandler(clientSocket, config, logger, numProcess)).start();
+                new Thread(new ConnectionHandler(clientSocket, config, logger, numProcess)).start();
             }
         }
     }

@@ -56,13 +56,10 @@ public class InterpreteurCode {
             ProcessBuilder pb = new ProcessBuilder(command);
             Process process = pb.start();
 
-
-
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line = reader.readLine();
             //On récupère la réponse du code
             while (line != null){
-                System.out.println(line);
                 res += line;
                 line = reader.readLine();
             }
@@ -78,7 +75,35 @@ public class InterpreteurCode {
     }
 
     public static String codeExecBash(String code, String interpreteur) {
-        String res = "64";
+        String res = "";
+        try {
+            //On créer un fichier temporaire comportant le script bash
+            Path tempScript = Files.createTempFile("script", ".sh");
+            //On écris le code dedans
+            Files.write(tempScript, code.getBytes());
+
+            //On compose la commande, avec le script et l'interpreteur
+            String[] command = {interpreteur, tempScript.toString()};
+
+            //On créer le processus
+            ProcessBuilder pb = new ProcessBuilder(command);
+            Process process = pb.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line = reader.readLine();
+            //On récupère la réponse du code
+            while (line != null){
+                res += line;
+                line = reader.readLine();
+            }
+
+            //On supprime le fichier qui contenait le script, celui ci étant maintenant inutile
+            Files.delete(tempScript);
+
+        } catch (IOException e) {
+            res = "erreur";
+            throw new RuntimeException(e);
+        }
         return res;
     }
 }
